@@ -41,7 +41,7 @@ if st.session_state.stage == "welcome":
     show_rtl_text("בכל חלק יוצג גרף עם כותרת למשך חצי דקה ולאחר מכן יופיעו שלוש שאלות אמריקאיות.")
     if st.button("המשך"):
         st.session_state.stage = 0
-        st.experimental_rerun()
+        st.rerun()
 
 elif isinstance(st.session_state.stage, int) and st.session_state.stage < len(st.session_state.chosen):
     chart_idx = st.session_state.stage
@@ -62,7 +62,7 @@ elif isinstance(st.session_state.stage, int) and st.session_state.stage < len(st
         st.markdown("הגרף יוצג למשך **30 שניות**. אנא התבוננ/י בו היטב.")
         time.sleep(30)
         st.session_state.step = "q1"
-        st.experimental_rerun()
+        st.rerun()
 
     elif st.session_state.step.startswith("q"):
         q_num = int(st.session_state.step[1])
@@ -96,7 +96,7 @@ elif isinstance(st.session_state.stage, int) and st.session_state.stage < len(st
                     del st.session_state.answers
                     st.session_state.stage += 1
                     del st.session_state.step
-                st.experimental_rerun()
+                st.rerun()
 
 else:
     show_rtl_text("שלב א של הניסוי הסתיים, השלב הבא יחל בעוד שעתיים", "h2")
