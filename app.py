@@ -2,11 +2,13 @@ import streamlit as st
 import pandas as pd
 import os
 import random
+import time
 from PIL import Image
 
 st.set_page_config(layout="wide", page_title="ניסוי זיכרון חזותי")
 st.markdown("<style>body {direction: rtl; text-align: right;}</style>", unsafe_allow_html=True)
 
+@st.cache_data
 def load_data():
     df = pd.read_csv("MemoryTest.csv", encoding='utf-8-sig')
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
@@ -14,64 +16,82 @@ def load_data():
     df['full_image_path'] = df['ImageFileName'].apply(lambda x: os.path.join("images", os.path.basename(x.strip())) if pd.notna(x) else '')
     return df
 
-def show_question(question, options, key):
-    st.markdown(f"<p style='direction: rtl; text-align: right; font-size:18px;'><strong>{question}</strong></p>", unsafe_allow_html=True)
-    return st.radio("", options, key=key, format_func=lambda x: f"{chr(65 + options.index(x))}. {x}", label_visibility="collapsed")
+def show_rtl_text(text, tag="p", size="18px"):
+    st.markdown(f"<{tag} style='direction: rtl; text-align: right; font-size:{size};'>{text}</{tag}>", unsafe_allow_html=True)
+
+def show_question(question, options, key_prefix):
+    show_rtl_text(question)
+    return st.radio("", options, key=key_prefix, format_func=lambda x: f"{chr(65 + options.index(x))}. {x}", label_visibility="collapsed")
 
 def show_confidence(key):
-    st.markdown(f"<p style='direction: rtl; text-align: right; font-size:16px;'>באיזו מידה אתה בטוח בתשובתך? (0-100)</p>", unsafe_allow_html=True)
+    show_rtl_text("באיזו מידה אתה בטוח בתשובתך? (0-100, בקפיצות של 10)")
     return st.slider("", 0, 100, 50, 10, key=key, label_visibility="collapsed")
 
 df = load_data()
 
 if "stage" not in st.session_state:
-    st.session_state.stage = 0
-    st.session_state.chosen = random.sample(df['ChartNumber'].unique().tolist(), 10)
+    st.session_state.stage = "welcome"
     st.session_state.responses = []
+    st.session_state.chosen = random.sample(df['ChartNumber'].unique().tolist(), 10)
 
-chart_idx = st.session_state.stage
+if st.session_state.stage == "welcome":
+    show_rtl_text("שלום וברוכ/ה הבא/ה לניסוי בזיכרון חזותי!", "h2")
+    show_rtl_text("הניסוי יתבצע בשני חלקים: החלק הראשון יתבצע כעת והחלק השני יתבצע בעוד שעתיים.")
+    show_rtl_text("בכל חלק יוצג גרף עם כותרת למשך חצי דקה ולאחר מכן יופיעו שלוש שאלות אמריקאיות.")
+    if st.button("המשך"):
+        st.session_state.stage = 0
+        st.experimental_rerun()
 
-if chart_idx < len(st.session_state.chosen):
+elif isinstance(st.session_state.stage, int) and st.session_state.stage < len(st.session_state.chosen):
+    chart_idx = st.session_state.stage
     chart = st.session_state.chosen[chart_idx]
     condition = random.choice(df[df['ChartNumber'] == chart]['Condition'].dropna().unique().tolist())
     row = df[(df['ChartNumber'] == chart) & (df['Condition'] == condition)].iloc[0]
 
-    st.markdown(f"<h4 style='direction: rtl; text-align: right;'>גרף מספר: {row['ChartNumber']} | תנאי: {row['Condition']}</h4>", unsafe_allow_html=True)
-    st.markdown(f"<p style='direction: rtl; text-align: right;'><strong>{row['Title']}</strong></p>", unsafe_allow_html=True)
+    if "step" not in st.session_state:
+        st.session_state.step = "image"
 
-    image_path = row['full_image_path']
-    if os.path.exists(image_path):
-        st.image(Image.open(image_path), use_container_width=True)
-    else:
-        st.warning(f"תמונה לא נמצאה: {image_path}")
+    if st.session_state.step == "image":
+        show_rtl_text(f"גרף מספר: {row['ChartNumber']} | תנאי: {row['Condition']}", "h4")
+        show_rtl_text(f"{row['Title']}", "h5")
+        if os.path.exists(row['full_image_path']):
+            st.image(Image.open(row['full_image_path']), use_container_width=True)
+        else:
+            show_rtl_text("קובץ הגרף לא נמצא")
+        st.markdown("הגרף יוצג למשך **30 שניות**. אנא התבוננ/י בו היטב.")
+        time.sleep(30)
+        st.session_state.step = "q1"
+        st.experimental_rerun()
 
-    with st.form(key=f"form_{chart_idx}"):
-        st.markdown("<h3 style='direction: rtl; text-align: right;'>שאלה 1</h3>", unsafe_allow_html=True)
-        answer1 = show_question(row['Question1Text'], [row['OptionA'], row['OptionB'], row['OptionC'], row['OptionD']], f"q1_{chart_idx}")
-        confidence1 = show_confidence(f"conf1_{chart_idx}")
+    elif st.session_state.step.startswith("q"):
+        q_num = int(st.session_state.step[1])
+        question_col = f"Question{q_num}Text"
+        options = [row[f"Q{q_num}OptionA"], row[f"Q{q_num}OptionB"],
+                   row[f"Q{q_num}OptionC"], row[f"Q{q_num}OptionD"]]
 
-        st.markdown("<h3 style='direction: rtl; text-align: right;'>שאלה 2</h3>", unsafe_allow_html=True)
-        answer2 = show_question(row['Question2Text'], [row['OptionA.1'], row['OptionB.1'], row['OptionC.1'], row['OptionD.1']], f"q2_{chart_idx}")
-        confidence2 = show_confidence(f"conf2_{chart_idx}")
-
-        st.markdown("<h3 style='direction: rtl; text-align: right;'>שאלה 3</h3>", unsafe_allow_html=True)
-        answer3 = show_question(row['Question3Text'], [row['OptionA.2'], row['OptionB.2'], row['OptionC.2'], row['OptionD.2']], f"q3_{chart_idx}")
-        confidence3 = show_confidence(f"conf3_{chart_idx}")
-
-        submit = st.form_submit_button("המשך")
-        if submit:
-            st.session_state.responses.append({
-                'ChartNumber': row['ChartNumber'],
-                'Condition': row['Condition'],
-                'answer1': answer1, 'confidence1': confidence1,
-                'answer2': answer2, 'confidence2': confidence2,
-                'answer3': answer3, 'confidence3': confidence3,
-            })
-            st.session_state.stage += 1
-            st.experimental_rerun()
+        with st.form(key=f"form_q{q_num}"):
+            show_rtl_text(f"שאלה {q_num}", "h3")
+            answer = show_question(row[question_col], options, f"a{q_num}_{chart_idx}")
+            confidence = show_confidence(f"c{q_num}_{chart_idx}")
+            if st.form_submit_button("המשך"):
+                if "answers" not in st.session_state:
+                    st.session_state.answers = {}
+                st.session_state.answers[f"answer{q_num}"] = answer
+                st.session_state.answers[f"confidence{q_num}"] = confidence
+                if q_num < 3:
+                    st.session_state.step = f"q{q_num+1}"
+                else:
+                    st.session_state.responses.append({
+                        "ChartNumber": row["ChartNumber"],
+                        "Condition": row["Condition"],
+                        **st.session_state.answers
+                    })
+                    del st.session_state.answers
+                    st.session_state.stage += 1
+                    del st.session_state.step
+                st.experimental_rerun()
 
 else:
-    st.success("הניסוי הסתיים! תודה על השתתפותך.")
+    show_rtl_text("שלב א של הניסוי הסתיים, השלב הבא יחל בעוד שעתיים", "h2")
     df_out = pd.DataFrame(st.session_state.responses)
-    st.dataframe(df_out)
     st.download_button("הורד תוצאות כקובץ CSV", df_out.to_csv(index=False), "results.csv", "text/csv")
