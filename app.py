@@ -22,7 +22,7 @@ def show_rtl_text(text, tag="p", size="18px"):
 
 def show_question(question, options, key_prefix):
     show_rtl_text(question)
-    return st.radio("", options, key=key_prefix, format_func=lambda x: f"{chr(65 + options.index(x))}. {x}", label_visibility="collapsed")
+    return st.radio("", options, index=None, key=key_prefix, format_func=lambda x: f"{chr(65 + options.index(x))}. {x}", label_visibility="collapsed")
 
 def show_confidence(key):
     show_rtl_text("באיזו מידה אתה בטוח בתשובתך? (0-100, בקפיצות של 10)")
@@ -55,12 +55,13 @@ elif isinstance(st.session_state.stage, int) and st.session_state.stage < len(st
     if st.session_state.step == "image":
         show_rtl_text(f"גרף מספר: {row['ChartNumber']} | תנאי: {row['Condition']}", "h4")
         show_rtl_text(f"{row['Title']}", "h5")
+        st.markdown("הגרף יוצג למשך **שנייה אחת**. אנא התבוננ/י בו היטב.")
         if os.path.exists(row['full_image_path']):
             st.image(Image.open(row['full_image_path']), use_container_width=True)
         else:
             show_rtl_text("קובץ הגרף לא נמצא")
         st.markdown("הגרף יוצג למשך **30 שניות**. אנא התבוננ/י בו היטב.")
-        time.sleep(30)
+        time.sleep(1)
         st.session_state.step = "q1"
         st.rerun()
 
