@@ -38,7 +38,7 @@ if chart_idx < len(st.session_state.chosen):
 
     image_path = row['full_image_path']
     if os.path.exists(image_path):
-        st.image(Image.open(image_path), use_column_width=True)
+        st.image(Image.open(image_path), use_container_width=True)
     else:
         st.warning(f"תמונה לא נמצאה: {image_path}")
 
