@@ -5,6 +5,7 @@ import random
 from PIL import Image
 
 st.set_page_config(layout="wide", page_title="ניסוי זיכרון חזותי")
+st.markdown("<style>body {direction: rtl; text-align: right;}</style>", unsafe_allow_html=True)
 
 def load_data():
     df = pd.read_csv("MemoryTest.csv", encoding='utf-8-sig')
@@ -14,10 +15,12 @@ def load_data():
     return df
 
 def show_question(question, options, key):
-    return st.radio(question, options, key=key, format_func=lambda x: f"{chr(65 + options.index(x))}. {x}")
+    st.markdown(f"<p style='direction: rtl; text-align: right; font-size:18px;'><strong>{question}</strong></p>", unsafe_allow_html=True)
+    return st.radio("", options, key=key, format_func=lambda x: f"{chr(65 + options.index(x))}. {x}", label_visibility="collapsed")
 
 def show_confidence(key):
-    return st.slider("באיזו מידה אתה בטוח בתשובתך? (0-100)", 0, 100, 50, 10, key=key)
+    st.markdown(f"<p style='direction: rtl; text-align: right; font-size:16px;'>באיזו מידה אתה בטוח בתשובתך? (0-100)</p>", unsafe_allow_html=True)
+    return st.slider("", 0, 100, 50, 10, key=key, label_visibility="collapsed")
 
 df = load_data()
 
@@ -33,8 +36,8 @@ if chart_idx < len(st.session_state.chosen):
     condition = random.choice(df[df['ChartNumber'] == chart]['Condition'].dropna().unique().tolist())
     row = df[(df['ChartNumber'] == chart) & (df['Condition'] == condition)].iloc[0]
 
-    st.markdown(f"#### גרף מספר: {row['ChartNumber']} | תנאי: {row['Condition']}")
-    st.markdown(f"**{row['Title']}**")
+    st.markdown(f"<h4 style='direction: rtl; text-align: right;'>גרף מספר: {row['ChartNumber']} | תנאי: {row['Condition']}</h4>", unsafe_allow_html=True)
+    st.markdown(f"<p style='direction: rtl; text-align: right;'><strong>{row['Title']}</strong></p>", unsafe_allow_html=True)
 
     image_path = row['full_image_path']
     if os.path.exists(image_path):
@@ -43,15 +46,15 @@ if chart_idx < len(st.session_state.chosen):
         st.warning(f"תמונה לא נמצאה: {image_path}")
 
     with st.form(key=f"form_{chart_idx}"):
-        st.subheader("שאלה 1")
+        st.markdown("<h3 style='direction: rtl; text-align: right;'>שאלה 1</h3>", unsafe_allow_html=True)
         answer1 = show_question(row['Question1Text'], [row['OptionA'], row['OptionB'], row['OptionC'], row['OptionD']], f"q1_{chart_idx}")
         confidence1 = show_confidence(f"conf1_{chart_idx}")
 
-        st.subheader("שאלה 2")
+        st.markdown("<h3 style='direction: rtl; text-align: right;'>שאלה 2</h3>", unsafe_allow_html=True)
         answer2 = show_question(row['Question2Text'], [row['OptionA.1'], row['OptionB.1'], row['OptionC.1'], row['OptionD.1']], f"q2_{chart_idx}")
         confidence2 = show_confidence(f"conf2_{chart_idx}")
 
-        st.subheader("שאלה 3")
+        st.markdown("<h3 style='direction: rtl; text-align: right;'>שאלה 3</h3>", unsafe_allow_html=True)
         answer3 = show_question(row['Question3Text'], [row['OptionA.2'], row['OptionB.2'], row['OptionC.2'], row['OptionD.2']], f"q3_{chart_idx}")
         confidence3 = show_confidence(f"conf3_{chart_idx}")
 
