@@ -55,13 +55,13 @@ elif isinstance(st.session_state.stage, int) and st.session_state.stage < len(st
     if st.session_state.step == "image":
         show_rtl_text(f"גרף מספר: {row['ChartNumber']} | תנאי: {row['Condition']}", "h4")
         show_rtl_text(f"{row['Title']}", "h5")
-        st.markdown("הגרף יוצג למשך **שנייה אחת**. אנא התבוננ/י בו היטב.")
+        st.markdown("הגרף יוצג למשך **3 שניות**. אנא התבוננ/י בו היטב.")
         if os.path.exists(row['full_image_path']):
             st.image(Image.open(row['full_image_path']), use_container_width=True)
         else:
             show_rtl_text("קובץ הגרף לא נמצא")
         st.markdown("הגרף יוצג למשך **30 שניות**. אנא התבוננ/י בו היטב.")
-        time.sleep(1)
+        time.sleep(3)
         st.session_state.step = "q1"
         st.rerun()
 
@@ -81,23 +81,30 @@ elif isinstance(st.session_state.stage, int) and st.session_state.stage < len(st
             answer = show_question(question_text, options, f"a{q_num}_{chart_idx}")
             confidence = show_confidence(f"c{q_num}_{chart_idx}")
             submit = st.form_submit_button("המשך")
+            
             if submit:
-                if "answers" not in st.session_state:
-                    st.session_state.answers = {}
-                st.session_state.answers[f"answer{q_num}"] = answer
-                st.session_state.answers[f"confidence{q_num}"] = confidence
-                if q_num < 3:
-                    st.session_state.step = f"q{q_num+1}"
+                if answer is None:
+                    st.warning("יש לבחור תשובה.")
+                elif confidence is None:
+                    st.warning("יש לבחור ערך ביטחון.")
                 else:
-                    st.session_state.responses.append({
-                        "ChartNumber": row["ChartNumber"],
-                        "Condition": row["Condition"],
-                        **st.session_state.answers
-                    })
-                    del st.session_state.answers
-                    st.session_state.stage += 1
-                    del st.session_state.step
-                st.rerun()
+                    if "answers" not in st.session_state:
+                        st.session_state.answers = {}
+                    st.session_state.answers[f"answer{q_num}"] = answer
+                    st.session_state.answers[f"confidence{q_num}"] = confidence
+                    if q_num < 3:
+                        st.session_state.step = f"q{q_num+1}"
+                    else:
+                        st.session_state.responses.append({
+                            "ChartNumber": row["ChartNumber"],
+                            "Condition": row["Condition"],
+                            **st.session_state.answers
+                        })
+                        del st.session_state.answers
+                        st.session_state.stage += 1
+                        del st.session_state.step
+                    st.rerun()
+
 
 else:
     show_rtl_text("שלב א של הניסוי הסתיים, השלב הבא יחל בעוד שעתיים", "h2")
