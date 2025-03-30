@@ -1,3 +1,4 @@
+# Code continues from previous cell, included as fixed app.py
 import streamlit as st
 import pandas as pd
 import os
@@ -66,14 +67,20 @@ elif isinstance(st.session_state.stage, int) and st.session_state.stage < len(st
     elif st.session_state.step.startswith("q"):
         q_num = int(st.session_state.step[1])
         question_col = f"Question{q_num}Text"
-        options = [row[f"Q{q_num}OptionA"], row[f"Q{q_num}OptionB"],
-                   row[f"Q{q_num}OptionC"], row[f"Q{q_num}OptionD"]]
+        try:
+            options = [row[f"Q{q_num}OptionA"], row[f"Q{q_num}OptionB"],
+                       row[f"Q{q_num}OptionC"], row[f"Q{q_num}OptionD"]]
+            question_text = row[question_col]
+        except KeyError:
+            st.error(f"שגיאה: עמודות השאלה {q_num} חסרות בקובץ הנתונים.")
+            st.stop()
 
         with st.form(key=f"form_q{q_num}"):
             show_rtl_text(f"שאלה {q_num}", "h3")
-            answer = show_question(row[question_col], options, f"a{q_num}_{chart_idx}")
+            answer = show_question(question_text, options, f"a{q_num}_{chart_idx}")
             confidence = show_confidence(f"c{q_num}_{chart_idx}")
-            if st.form_submit_button("המשך"):
+            submit = st.form_submit_button("המשך")
+            if submit:
                 if "answers" not in st.session_state:
                     st.session_state.answers = {}
                 st.session_state.answers[f"answer{q_num}"] = answer
